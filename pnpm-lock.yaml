@@ -4,9 +4,13 @@ importers:
 
   .:
     specifiers:
+      '@xclaw/core': workspace:*
+      '@xclaw/providers': workspace:*
       typescript: ^5.7.0
       vitest: ^3.0.0
     devDependencies:
+      '@xclaw/core': link:packages/core
+      '@xclaw/providers': link:packages/providers
       typescript: 5.9.3
       vitest: 3.2.4
 
