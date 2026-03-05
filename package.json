@@ -11,5 +11,9 @@
     "test": "vitest",
     "lint": "oxlint .",
     "dev": "pnpm --filter @xclaw/cli run dev"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0",
+    "typescript": "^5.7.0"
   }
 }
