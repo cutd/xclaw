@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { startCommand } from './commands/start.js';
+import { searchSkills, installSkill } from './commands/skill.js';
 
 const program = new Command();
 
@@ -20,6 +21,24 @@ program
       process.exit(1);
     }
     await startCommand({ apiKey, model: opts.model });
+  });
+
+const skillCmd = program
+  .command('skill')
+  .description('Manage xclaw skills (search, install, list)');
+
+skillCmd
+  .command('search <query>')
+  .description('Search ClawHub for skills')
+  .action(async (query: string) => {
+    await searchSkills(query);
+  });
+
+skillCmd
+  .command('install <name>')
+  .description('Install a skill from ClawHub')
+  .action(async (name: string) => {
+    await installSkill(name);
   });
 
 program.parse();
