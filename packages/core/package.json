@@ -20,6 +20,9 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
+    "@lancedb/lancedb": "^0.26.2",
+    "@lancedb/lancedb-darwin-x64": "^0.22.3",
+    "apache-arrow": "18.1.0",
     "ws": "^8.19.0"
   }
 }
