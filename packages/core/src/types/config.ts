@@ -1,3 +1,20 @@
+export type SandboxMode = 'ephemeral' | 'persistent' | 'passthrough';
+
+export type AgentLevel = 'lightweight' | 'standard' | 'expert';
+
+export interface GatewayConfig {
+  host: string;
+  port: number;
+  heartbeatIntervalMs: number;
+  heartbeatTimeoutMs: number;
+}
+
+export interface AgentConfig {
+  maxConcurrentAgents: number;
+  defaultTimeout: number;
+  tierLevels: Record<string, AgentLevel>;
+}
+
 export interface XClawConfig {
   version: string;
   providers: ProviderConfig[];
@@ -6,6 +23,8 @@ export interface XClawConfig {
   router: RouterConfig;
   sandbox: SandboxConfig;
   budget: BudgetConfig;
+  gateway: GatewayConfig;
+  agent: AgentConfig;
 }
 
 export interface ProviderConfig {
@@ -45,12 +64,13 @@ export interface RouterConfig {
 }
 
 export interface SandboxConfig {
-  defaultMode: 'ephemeral' | 'persistent';
+  defaultMode: SandboxMode;
   backend: 'auto' | 'bwrap' | 'macSandbox' | 'vmIsolate';
   memoryLimitMB: number;
   timeoutSeconds: number;
   networkWhitelist: string[];
   persistDir: string;
+  perSkillMode?: Record<string, SandboxMode>;
 }
 
 export interface BudgetConfig {

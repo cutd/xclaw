@@ -14,6 +14,10 @@ export type {
   RouterConfig,
   SandboxConfig,
   BudgetConfig,
+  GatewayConfig,
+  AgentConfig,
+  AgentLevel,
+  SandboxMode,
 } from './config.js';
 
 export type {
