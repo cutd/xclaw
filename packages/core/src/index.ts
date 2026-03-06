@@ -4,3 +4,4 @@ export * from './plugin/index.js';
 export * from './security/index.js';
 export * from './router/index.js';
 export * from './gateway/index.js';
+export * from './agent/index.js';
