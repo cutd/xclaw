@@ -37,10 +37,15 @@ importers:
 
   packages/core:
     specifiers:
+      '@types/ws': ^8.18.1
       tsup: ^8.4.0
       typescript: ^5.7.0
       vitest: ^3.0.0
+      ws: ^8.19.0
+    dependencies:
+      ws: 8.19.0
     devDependencies:
+      '@types/ws': 8.18.1
       tsup: 8.5.1_typescript@5.9.3
       typescript: 5.9.3
       vitest: 3.2.4
@@ -498,6 +503,12 @@ packages:
     resolution: {integrity: sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw==}
     dependencies:
       undici-types: 6.21.0
+    dev: true
+
+  /@types/ws/8.18.1:
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+    dependencies:
+      '@types/node': 22.19.13
     dev: true
 
   /@vitest/expect/3.2.4:
@@ -1344,3 +1355,16 @@ packages:
       siginfo: 2.0.0
       stackback: 0.0.2
     dev: true
+
+  /ws/8.19.0:
+    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+    dev: false

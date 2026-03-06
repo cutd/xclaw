@@ -14,8 +14,12 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@types/ws": "^8.18.1",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.19.0"
   }
 }
