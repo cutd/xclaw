@@ -1,6 +1,10 @@
 import { Command } from 'commander';
 import { startCommand } from './commands/start.js';
 import { searchSkills, installSkill } from './commands/skill.js';
+import { formatMemoryFile } from './commands/memory.js';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 const program = new Command();
 
@@ -39,6 +43,31 @@ skillCmd
   .description('Install a skill from ClawHub')
   .action(async (name: string) => {
     await installSkill(name);
+  });
+
+const memoryCmd = program
+  .command('memory')
+  .description('Manage xclaw memory (search, show, import)');
+
+memoryCmd
+  .command('show')
+  .description('Display MEMORY.md contents')
+  .action(async () => {
+    const memoryPath = join(homedir(), '.xclaw', 'memory', 'MEMORY.md');
+    try {
+      const content = await readFile(memoryPath, 'utf-8');
+      console.log(formatMemoryFile(content));
+    } catch {
+      console.log('No memory file found. Start a conversation to create memories.');
+    }
+  });
+
+memoryCmd
+  .command('search <query>')
+  .description('Search memories')
+  .action(async (query: string) => {
+    console.log(`Searching memories for: ${query}`);
+    console.log('Memory search requires a running xclaw instance. Use "xclaw start" first.');
   });
 
 program.parse();
