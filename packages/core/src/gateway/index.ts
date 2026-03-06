@@ -1,6 +1,8 @@
 export { GatewayServer } from './server.js';
 export type { GatewayServerOptions } from './server.js';
 export { SessionManager } from './sessionManager.js';
+export { MessagePipeline } from './pipeline.js';
+export type { MessagePipelineConfig } from './pipeline.js';
 export type {
   GatewayMessage,
   GatewayMessageType,

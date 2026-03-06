@@ -1,0 +1,92 @@
+import { describe, it, expect, vi } from 'vitest';
+import { MessagePipeline } from './pipeline.js';
+import { EventBus } from '../events/eventBus.js';
+import { RiskAssessor } from '../security/riskAssessor.js';
+import { ApprovalEngine } from '../security/approvalEngine.js';
+import { AuditLog } from '../security/auditLog.js';
+import { TaskAnalyzer } from '../router/taskAnalyzer.js';
+import { ModelRouter } from '../router/modelRouter.js';
+import { ContextManager } from '../router/contextManager.js';
+import { AgentDispatcher } from '../agent/dispatcher.js';
+import type { Agent, AgentResult } from '../agent/types.js';
+import type { UnifiedMessage } from '../types/message.js';
+
+function mockAgent(content: string): Agent {
+  return {
+    level: 'lightweight',
+    run: vi.fn().mockResolvedValue({
+      content,
+      model: 'mock',
+      usage: { inputTokens: 10, outputTokens: 5 },
+    } satisfies AgentResult),
+  };
+}
+
+describe('MessagePipeline', () => {
+  it('should process a message through the full pipeline', async () => {
+    const eventBus = new EventBus();
+    const agent = mockAgent('Hello back!');
+
+    const pipeline = new MessagePipeline({
+      eventBus,
+      riskAssessor: new RiskAssessor(),
+      approvalEngine: new ApprovalEngine({ promptLevel: 'none' }),
+      auditLog: new AuditLog(),
+      taskAnalyzer: new TaskAnalyzer(),
+      modelRouter: new ModelRouter({
+        tierModels: { trivial: 'mock', simple: 'mock', standard: 'mock', complex: 'mock' },
+        defaultModel: 'mock',
+      }),
+      contextManager: new ContextManager(),
+      dispatcher: new AgentDispatcher({
+        tierLevels: { trivial: 'lightweight', simple: 'lightweight', standard: 'standard', complex: 'expert' },
+        agents: { lightweight: agent, standard: agent, expert: agent },
+      }),
+    });
+
+    const msg: UnifiedMessage = {
+      id: 'msg-1',
+      source: { channel: 'cli', userId: 'user-1', sessionId: 'sess-1' },
+      content: { type: 'text', text: 'hello' },
+      timestamp: Date.now(),
+    };
+
+    const result = await pipeline.process(msg);
+    expect(result.content).toBe('Hello back!');
+    expect(agent.run).toHaveBeenCalled();
+  });
+
+  it('should record audit log entry', async () => {
+    const auditLog = new AuditLog();
+    const agent = mockAgent('response');
+
+    const pipeline = new MessagePipeline({
+      eventBus: new EventBus(),
+      riskAssessor: new RiskAssessor(),
+      approvalEngine: new ApprovalEngine({ promptLevel: 'none' }),
+      auditLog,
+      taskAnalyzer: new TaskAnalyzer(),
+      modelRouter: new ModelRouter({
+        tierModels: { trivial: 'mock', simple: 'mock', standard: 'mock', complex: 'mock' },
+        defaultModel: 'mock',
+      }),
+      contextManager: new ContextManager(),
+      dispatcher: new AgentDispatcher({
+        tierLevels: { trivial: 'lightweight', simple: 'lightweight', standard: 'standard', complex: 'expert' },
+        agents: { lightweight: agent, standard: agent, expert: agent },
+      }),
+    });
+
+    const msg: UnifiedMessage = {
+      id: 'msg-2',
+      source: { channel: 'cli', userId: 'user-1', sessionId: 'sess-2' },
+      content: { type: 'text', text: 'test' },
+      timestamp: Date.now(),
+    };
+
+    await pipeline.process(msg);
+    const entries = auditLog.getAll();
+    expect(entries.length).toBeGreaterThanOrEqual(1);
+    expect(entries[0].operation).toBe('chat.message');
+  });
+});
