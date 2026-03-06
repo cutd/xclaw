@@ -89,4 +89,50 @@ describe('MessagePipeline', () => {
     expect(entries.length).toBeGreaterThanOrEqual(1);
     expect(entries[0].operation).toBe('chat.message');
   });
+
+  it('should inject memories into agent context when memoryManager is provided', async () => {
+    const mockMemoryManager = {
+      retrieve: vi.fn().mockResolvedValue([
+        {
+          entry: { id: '1', content: 'User prefers TypeScript', source: 'conversation', userId: 'user-1', tags: [], importance: 0.5, createdAt: Date.now(), updatedAt: Date.now(), accessCount: 0 },
+          score: 0.8,
+          source: 'hybrid',
+        },
+      ]),
+      store: vi.fn().mockResolvedValue({}),
+      storeDailyLog: vi.fn(),
+    };
+
+    const agent = mockAgent('TypeScript it is!');
+
+    const pipelineWithMemory = new MessagePipeline({
+      eventBus: new EventBus(),
+      riskAssessor: new RiskAssessor(),
+      approvalEngine: new ApprovalEngine({ promptLevel: 'none' }),
+      auditLog: new AuditLog(),
+      taskAnalyzer: new TaskAnalyzer(),
+      modelRouter: new ModelRouter({
+        tierModels: { trivial: 'mock', simple: 'mock', standard: 'mock', complex: 'mock' },
+        defaultModel: 'mock',
+      }),
+      contextManager: new ContextManager(),
+      dispatcher: new AgentDispatcher({
+        tierLevels: { trivial: 'lightweight', simple: 'lightweight', standard: 'standard', complex: 'expert' },
+        agents: { lightweight: agent, standard: agent, expert: agent },
+      }),
+      memoryManager: mockMemoryManager as any,
+    });
+
+    const msg: UnifiedMessage = {
+      id: 'msg-3',
+      source: { channel: 'cli', userId: 'user-1', sessionId: 'sess-3' },
+      content: { type: 'text', text: 'What language do I prefer?' },
+      timestamp: Date.now(),
+    };
+
+    const result = await pipelineWithMemory.process(msg);
+    expect(result.content).toBe('TypeScript it is!');
+    expect(mockMemoryManager.retrieve).toHaveBeenCalledOnce();
+    expect(mockMemoryManager.storeDailyLog).toHaveBeenCalledOnce();
+  });
 });

@@ -8,6 +8,7 @@ import type { ModelRouter } from '../router/modelRouter.js';
 import type { ContextManager } from '../router/contextManager.js';
 import type { AgentDispatcher } from '../agent/dispatcher.js';
 import type { AgentResult, StreamCallback } from '../agent/types.js';
+import type { MemoryManager } from '../memory/manager.js';
 
 export interface MessagePipelineConfig {
   eventBus: EventBus;
@@ -18,6 +19,7 @@ export interface MessagePipelineConfig {
   modelRouter: ModelRouter;
   contextManager: ContextManager;
   dispatcher: AgentDispatcher;
+  memoryManager?: MemoryManager;
 }
 
 export class MessagePipeline {
@@ -56,7 +58,21 @@ export class MessagePipeline {
     contextManager.addTurn(msg.source.sessionId, { role: 'user', content: text, timestamp: msg.timestamp });
     const history = contextManager.getContext(msg.source.sessionId, analysis.contextWindowTurns);
 
+    // 4b. Memory: retrieve relevant memories
+    let memoryContext = '';
+    if (this.config.memoryManager) {
+      const memories = await this.config.memoryManager.retrieve(text, 5);
+      if (memories.length > 0) {
+        memoryContext = memories.map((m) => m.entry.content).join('\n');
+      }
+    }
+
     // 5. Agent: dispatch
+    const conversationHistory = history.map((t) => ({ role: t.role as 'user' | 'assistant' | 'system', content: t.content }));
+    if (memoryContext) {
+      conversationHistory.unshift({ role: 'system', content: `Relevant memories:\n${memoryContext}` });
+    }
+
     const result = await dispatcher.dispatch(
       {
         sessionId: msg.source.sessionId,
@@ -65,7 +81,7 @@ export class MessagePipeline {
         tier: analysis.tier,
         model,
         maxTokens: analysis.maxOutputTokens,
-        conversationHistory: history.map((t) => ({ role: t.role, content: t.content })),
+        conversationHistory,
         tools: [],
       },
       onStream,
@@ -77,6 +93,11 @@ export class MessagePipeline {
       content: result.content,
       timestamp: Date.now(),
     });
+
+    // 6b. Memory: store daily log
+    if (this.config.memoryManager) {
+      await this.config.memoryManager.storeDailyLog(`[${msg.source.userId}] ${text}\n→ ${result.content.slice(0, 200)}`);
+    }
 
     // 7. Audit
     auditLog.record({
