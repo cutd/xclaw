@@ -15,6 +15,21 @@ export interface AgentConfig {
   tierLevels: Record<string, AgentLevel>;
 }
 
+export interface MemoryConfig {
+  enabled: boolean;
+  storagePath: string;
+  openclawPath?: string;
+  vectorBackend: 'lancedb' | 'none';
+  embeddingModel?: string;
+  hybridWeights: {
+    vector: number;
+    bm25: number;
+  };
+  decayHalfLifeDays: number;
+  maxRetrievedMemories: number;
+  autoExtract: boolean;
+}
+
 export interface XClawConfig {
   version: string;
   providers: ProviderConfig[];
@@ -25,6 +40,7 @@ export interface XClawConfig {
   budget: BudgetConfig;
   gateway: GatewayConfig;
   agent: AgentConfig;
+  memory: MemoryConfig;
 }
 
 export interface ProviderConfig {

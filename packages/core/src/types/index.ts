@@ -18,6 +18,7 @@ export type {
   AgentConfig,
   AgentLevel,
   SandboxMode,
+  MemoryConfig,
 } from './config.js';
 
 export type {
