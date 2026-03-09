@@ -15,6 +15,15 @@
   "devDependencies": {
     "@xclaw/core": "workspace:*",
     "@xclaw/providers": "workspace:*",
+    "@xclaw/sdk": "workspace:*",
+    "@xclaw/channel-telegram": "workspace:*",
+    "@xclaw/channel-discord": "workspace:*",
+    "@xclaw/channel-slack": "workspace:*",
+    "@xclaw/channel-feishu": "workspace:*",
+    "@xclaw/channel-wecom": "workspace:*",
+    "@xclaw/channel-gchat": "workspace:*",
+    "@xclaw/channel-teams": "workspace:*",
+    "@xclaw/channel-mattermost": "workspace:*",
     "vitest": "^3.0.0",
     "typescript": "^5.7.0"
   }

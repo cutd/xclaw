@@ -12,9 +12,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@mattermost/client": "^9.0.0",
+    "@mattermost/types": "9.3.0",
     "@xclaw/core": "workspace:*",
-    "@xclaw/sdk": "workspace:*",
-    "@mattermost/client": "^9.0.0"
+    "@xclaw/sdk": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
