@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { startCommand } from './commands/start.js';
 import { searchSkills, installSkill } from './commands/skill.js';
 import { formatMemoryFile } from './commands/memory.js';
+import { formatChannelList } from './commands/channel.js';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -68,6 +69,50 @@ memoryCmd
   .action(async (query: string) => {
     console.log(`Searching memories for: ${query}`);
     console.log('Memory search requires a running xclaw instance. Use "xclaw start" first.');
+  });
+
+const channelCmd = program
+  .command('channel')
+  .description('Manage xclaw channels (list, enable, disable)');
+
+channelCmd
+  .command('list')
+  .description('List installed channels and their status')
+  .action(async () => {
+    const configPath = join(homedir(), '.xclaw', 'xclaw.config.yaml');
+    try {
+      const content = await readFile(configPath, 'utf-8');
+      // Simple YAML parsing for channel list
+      const channelSection = content.match(/channels:\n([\s\S]*?)(?=\n\w|\n$|$)/);
+      if (!channelSection) {
+        console.log('No channels configured.');
+        return;
+      }
+      const channels: { name: string; enabled: boolean }[] = [];
+      const entries = channelSection[1].matchAll(/- name: (\S+)\n\s+enabled: (true|false)/g);
+      for (const match of entries) {
+        channels.push({ name: match[1], enabled: match[2] === 'true' });
+      }
+      console.log(formatChannelList(channels));
+    } catch {
+      console.log('No configuration file found. Run "xclaw start" to create one.');
+    }
+  });
+
+channelCmd
+  .command('enable <name>')
+  .description('Enable a channel')
+  .action(async (name: string) => {
+    console.log(`Enabling channel: ${name}`);
+    console.log('Update your xclaw.config.yaml to set enabled: true for this channel.');
+  });
+
+channelCmd
+  .command('disable <name>')
+  .description('Disable a channel')
+  .action(async (name: string) => {
+    console.log(`Disabling channel: ${name}`);
+    console.log('Update your xclaw.config.yaml to set enabled: false for this channel.');
   });
 
 program.parse();
