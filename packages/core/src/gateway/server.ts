@@ -8,6 +8,26 @@ import type { GatewayMessage, ClientConnection, ClientType } from './types.js';
 export interface GatewayServerOptions {
   config: GatewayConfig;
   eventBus: EventBus;
+  statusProvider?: () => string[];
+}
+
+export interface StatusData {
+  channels: string[];
+  sessions: number;
+  uptime: number;
+}
+
+export function buildStatusResponse(data: StatusData): GatewayMessage {
+  return {
+    type: 'status.response',
+    id: randomUUID(),
+    payload: {
+      channels: data.channels,
+      sessions: data.sessions,
+      uptime: data.uptime,
+    },
+    timestamp: Date.now(),
+  };
 }
 
 export class GatewayServer {
@@ -15,12 +35,15 @@ export class GatewayServer {
   private clients = new Map<string, { ws: WebSocket; connection: ClientConnection }>();
   private readonly config: GatewayConfig;
   private readonly eventBus: EventBus;
+  private readonly statusProvider?: () => string[];
   readonly sessions: SessionManager;
   private heartbeatTimer?: ReturnType<typeof setInterval>;
+  private startedAt = Date.now();
 
   constructor(options: GatewayServerOptions) {
     this.config = options.config;
     this.eventBus = options.eventBus;
+    this.statusProvider = options.statusProvider;
     this.sessions = new SessionManager();
   }
 
@@ -148,6 +171,16 @@ export class GatewayServer {
         if (sessionId) {
           this.sessions.close(sessionId);
         }
+        return;
+      }
+
+      case 'status.query': {
+        const status = buildStatusResponse({
+          channels: this.statusProvider ? this.statusProvider() : [],
+          sessions: this.sessions.listAll().length,
+          uptime: Date.now() - this.startedAt,
+        });
+        this.sendTo(connectionId, status);
         return;
       }
     }

@@ -11,6 +11,8 @@ export type GatewayMessageType =
   | 'presence.leave'
   | 'presence.list'
   | 'config.update'
+  | 'status.query'
+  | 'status.response'
   | 'ping'
   | 'pong'
   | 'error';
