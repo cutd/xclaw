@@ -1,0 +1,23 @@
+{
+  "name": "@xclaw/channel-gchat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@xclaw/core": "workspace:*",
+    "@xclaw/sdk": "workspace:*",
+    "googleapis": "^130.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
