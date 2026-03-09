@@ -8,3 +8,4 @@ export * from './agent/index.js';
 export * from './sandbox/index.js';
 export * from './compat/index.js';
 export * from './memory/index.js';
+export * from './runtime/index.js';
