@@ -10,3 +10,7 @@ export { HybridRetriever } from './hybridRetriever.js';
 export type { HybridWeights, HybridResult } from './hybridRetriever.js';
 export { MemoryManager } from './manager.js';
 export type { MemoryManagerConfig } from './manager.js';
+export { MemoryHeuristic } from './heuristic.js';
+export type { HeuristicResult, MemoryCategory } from './heuristic.js';
+export { MemoryExtractor } from './extractor.js';
+export type { ExtractedMemory, MemoryExtractorConfig } from './extractor.js';

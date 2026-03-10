@@ -9,6 +9,8 @@ import type { ContextManager } from '../router/contextManager.js';
 import type { AgentDispatcher } from '../agent/dispatcher.js';
 import type { AgentResult, StreamCallback } from '../agent/types.js';
 import type { MemoryManager } from '../memory/manager.js';
+import type { MemoryExtractor } from '../memory/extractor.js';
+import { MemoryHeuristic } from '../memory/heuristic.js';
 
 export interface MessagePipelineConfig {
   eventBus: EventBus;
@@ -20,6 +22,7 @@ export interface MessagePipelineConfig {
   contextManager: ContextManager;
   dispatcher: AgentDispatcher;
   memoryManager?: MemoryManager;
+  memoryExtractor?: MemoryExtractor;
 }
 
 export class MessagePipeline {
@@ -97,6 +100,17 @@ export class MessagePipeline {
     // 6b. Memory: store daily log
     if (this.config.memoryManager) {
       await this.config.memoryManager.storeDailyLog(`[${msg.source.userId}] ${text}\n→ ${result.content.slice(0, 200)}`);
+    }
+
+    // 6c. Memory: auto-extract (fire-and-forget)
+    if (this.config.memoryExtractor) {
+      const heuristic = new MemoryHeuristic();
+      const scan = heuristic.scan(text);
+      if (scan.triggered && scan.category) {
+        this.config.memoryExtractor
+          .process(text, result.content, scan.category, msg.source.userId, msg.source.sessionId)
+          .catch(() => {});
+      }
     }
 
     // 7. Audit

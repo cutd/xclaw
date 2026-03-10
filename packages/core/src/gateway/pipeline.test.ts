@@ -135,4 +135,53 @@ describe('MessagePipeline', () => {
     expect(mockMemoryManager.retrieve).toHaveBeenCalledOnce();
     expect(mockMemoryManager.storeDailyLog).toHaveBeenCalledOnce();
   });
+
+  it('should fire-and-forget memory extraction when extractor is configured', async () => {
+    const extractorProcess = vi.fn().mockResolvedValue(undefined);
+    const mockExtractor = { process: extractorProcess };
+    const agent = mockAgent('Got it, dark mode!');
+
+    const pipeline = new MessagePipeline({
+      eventBus: new EventBus(),
+      riskAssessor: new RiskAssessor(),
+      approvalEngine: new ApprovalEngine({ promptLevel: 'none' }),
+      auditLog: new AuditLog(),
+      taskAnalyzer: new TaskAnalyzer(),
+      modelRouter: new ModelRouter({
+        tierModels: { trivial: 'mock', simple: 'mock', standard: 'mock', complex: 'mock' },
+        defaultModel: 'mock',
+      }),
+      contextManager: new ContextManager(),
+      dispatcher: new AgentDispatcher({
+        tierLevels: { trivial: 'lightweight', simple: 'lightweight', standard: 'standard', complex: 'expert' },
+        agents: { lightweight: agent, standard: agent, expert: agent },
+      }),
+      memoryExtractor: mockExtractor as any,
+    });
+
+    const msg: UnifiedMessage = {
+      id: 'msg-extract',
+      source: { channel: 'cli', userId: 'user-1', sessionId: 'sess-extract' },
+      content: { type: 'text', text: 'I prefer dark mode for all my editors' },
+      timestamp: Date.now(),
+    };
+
+    const result = await pipeline.process(msg);
+
+    // Result should return without waiting for extraction
+    expect(result.content).toBeDefined();
+
+    // Give the fire-and-forget a tick to execute
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Extractor should have been called with the user message and response
+    expect(extractorProcess).toHaveBeenCalledOnce();
+    expect(extractorProcess).toHaveBeenCalledWith(
+      expect.any(String),   // userMessage
+      expect.any(String),   // assistantResponse
+      expect.any(String),   // category
+      expect.any(String),   // userId
+      expect.any(String),   // sessionId
+    );
+  });
 });
