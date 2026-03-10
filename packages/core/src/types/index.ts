@@ -19,6 +19,9 @@ export type {
   AgentLevel,
   SandboxMode,
   MemoryConfig,
+  CronConfig,
+  WebhookConfigEntry,
+  WebhooksConfig,
 } from './config.js';
 
 export type {

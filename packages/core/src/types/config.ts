@@ -30,6 +30,28 @@ export interface MemoryConfig {
   autoExtract: boolean;
 }
 
+export interface CronConfig {
+  [name: string]: {
+    schedule: string;
+    skill: string;
+    action: string;
+    args?: Record<string, unknown>;
+    channel?: string;
+  };
+}
+
+export interface WebhookConfigEntry {
+  path: string;
+  skill: string;
+  action: string;
+  args?: Record<string, unknown>;
+  secret?: string;
+}
+
+export interface WebhooksConfig {
+  [name: string]: WebhookConfigEntry;
+}
+
 export interface XClawConfig {
   version: string;
   providers: ProviderConfig[];
@@ -41,6 +63,8 @@ export interface XClawConfig {
   gateway: GatewayConfig;
   agent: AgentConfig;
   memory: MemoryConfig;
+  cron?: CronConfig;
+  webhooks?: WebhooksConfig;
 }
 
 export interface ProviderConfig {

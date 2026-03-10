@@ -16,6 +16,13 @@ import { MessagePipeline } from '../gateway/pipeline.js';
 import { ConfigLoader } from './configLoader.js';
 import type { XClawConfig } from '../types/config.js';
 import type { AgentTier } from '../agent/types.js';
+import { CronScheduler } from '../cron/scheduler.js';
+import { CronJobStore } from '../cron/store.js';
+import { WebhookRouter } from '../webhook/router.js';
+import { createServer, type Server } from 'node:http';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+import type { CronJob } from '../cron/types.js';
 
 export type RuntimeState = 'stopped' | 'configured' | 'running';
 
@@ -38,6 +45,10 @@ export class XClawRuntime {
   private gateway?: GatewayServer;
   private pipeline?: MessagePipeline;
   private loadedChannels = new Map<string, any>();
+  private cronScheduler?: CronScheduler;
+  private cronStore?: CronJobStore;
+  private webhookRouter?: WebhookRouter;
+  private httpServer?: Server;
 
   async loadConfig(path: string): Promise<void> {
     const loader = new ConfigLoader();
@@ -124,11 +135,78 @@ export class XClawRuntime {
       }
     }
 
+    // 8. Cron scheduler
+    const cronJobs: CronJob[] = [];
+    if (this.config.cron) {
+      for (const [name, jobConfig] of Object.entries(this.config.cron)) {
+        cronJobs.push({
+          id: `config-${name}`,
+          name,
+          schedule: jobConfig.schedule,
+          skill: jobConfig.skill,
+          action: jobConfig.action,
+          args: jobConfig.args,
+          channel: jobConfig.channel,
+          enabled: true,
+          source: 'config',
+        });
+      }
+    }
+
+    this.cronStore = new CronJobStore(join(homedir(), '.xclaw', 'cron-jobs.json'));
+    const runtimeJobs = await this.cronStore.list();
+    const allJobs = [...cronJobs, ...runtimeJobs];
+
+    this.cronScheduler = new CronScheduler({
+      executor: async (job) => {
+        return { output: `Executed ${job.skill}.${job.action}` };
+      },
+    });
+    this.cronScheduler.loadJobs(allJobs);
+    this.cronScheduler.start();
+
+    // 9. Webhook HTTP server
+    if (this.config.webhooks && Object.keys(this.config.webhooks).length > 0) {
+      this.webhookRouter = new WebhookRouter({
+        executor: async (webhook, body) => {
+          return { output: `Webhook ${webhook.name} triggered` };
+        },
+      });
+
+      const webhookConfigs = Object.entries(this.config.webhooks).map(([name, wh]) => ({
+        id: `wh-${name}`,
+        name,
+        path: wh.path,
+        skill: wh.skill,
+        action: wh.action,
+        args: wh.args,
+        secret: wh.secret,
+        enabled: true,
+      }));
+      this.webhookRouter.loadWebhooks(webhookConfigs);
+
+      this.httpServer = createServer(this.webhookRouter.handler());
+      const webhookPort = this.config.gateway.port + 1;
+      this.httpServer.listen(webhookPort, this.config.gateway.host);
+    }
+
     this.startedAt = Date.now();
     this.state = 'running';
   }
 
   async stop(): Promise<void> {
+    // Stop cron scheduler
+    if (this.cronScheduler) {
+      this.cronScheduler.stop();
+      this.cronScheduler = undefined;
+    }
+
+    // Stop webhook HTTP server
+    if (this.httpServer) {
+      await new Promise<void>((resolve) => this.httpServer!.close(() => resolve()));
+      this.httpServer = undefined;
+    }
+
     // Unload channels
     for (const [, channel] of this.loadedChannels) {
       try { await channel.onUnload(); } catch { /* ignore */ }
@@ -195,5 +273,13 @@ export class XClawRuntime {
 
   getGateway(): GatewayServer | undefined {
     return this.gateway;
+  }
+
+  getCronScheduler(): CronScheduler | undefined {
+    return this.cronScheduler;
+  }
+
+  getCronStore(): CronJobStore | undefined {
+    return this.cronStore;
   }
 }

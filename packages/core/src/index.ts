@@ -9,3 +9,7 @@ export * from './sandbox/index.js';
 export * from './compat/index.js';
 export * from './memory/index.js';
 export * from './runtime/index.js';
+export { CronScheduler, CronJobStore } from './cron/index.js';
+export type { CronJob, CronExecutionResult } from './cron/index.js';
+export { WebhookRouter } from './webhook/index.js';
+export type { WebhookConfig } from './webhook/index.js';
