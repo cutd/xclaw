@@ -243,6 +243,19 @@ importers:
       vite: 6.4.1
       vitest: 3.2.4_happy-dom@16.8.1
 
+  skills/github:
+    specifiers:
+      '@xclaw/core': workspace:*
+      '@xclaw/sdk': workspace:*
+      typescript: ^5.7.0
+      vitest: ^3.0.0
+    dependencies:
+      '@xclaw/core': link:../../packages/core
+      '@xclaw/sdk': link:../../packages/sdk
+    devDependencies:
+      typescript: 5.9.3
+      vitest: 3.2.4
+
   skills/notes:
     specifiers:
       '@xclaw/core': workspace:*
