@@ -49,20 +49,23 @@ export class ShellSkill implements SkillPlugin {
     const [bin, ...cmdArgs] = tokens;
 
     return new Promise((resolve) => {
-      const child = execFile(bin, cmdArgs, { cwd, timeout }, (error, stdout, stderr) => {
+      execFile(bin, cmdArgs, { cwd, timeout }, (error, stdout, stderr) => {
         if (error && (error as NodeJS.ErrnoException).killed) {
           resolve({ stdout: stdout?.toString() ?? '', stderr: 'Command timed out', exitCode: 1 });
           return;
         }
+        const code = error ? (error as NodeJS.ErrnoException & { code?: number }).code : 0;
         resolve({
           stdout: stdout?.toString() ?? '',
           stderr: stderr?.toString() ?? '',
-          exitCode: error ? (error as any).code ?? 1 : 0,
+          exitCode: typeof code === 'number' ? code : 1,
         });
       });
     });
   }
 
+  // Simplified tokenizer: splits on whitespace, respects single/double quotes.
+  // Does NOT handle backslash escapes. Unclosed quotes are treated as closed at end-of-string.
   private tokenize(command: string): string[] {
     const tokens: string[] = [];
     let current = '';
