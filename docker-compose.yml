@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  xclaw:
+    build: .
+    ports:
+      - "18789:18789"
+    volumes:
+      - xclaw-data:/root/.xclaw
+    environment:
+      - XCLAW_ANTHROPIC_KEY=${XCLAW_ANTHROPIC_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  xclaw-data:
