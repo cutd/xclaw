@@ -115,4 +115,76 @@ channelCmd
     console.log('Update your xclaw.config.yaml to set enabled: false for this channel.');
   });
 
+// init
+program.command('init').description('Initialize xclaw configuration').action(async () => {
+  // For now, use defaults — interactive prompts can come later
+  const { initCommand } = await import('./commands/init.js');
+  const result = await initCommand({ provider: 'anthropic', apiKey: '', model: 'claude-sonnet-4-5' });
+  console.log(result);
+});
+
+// stop
+program.command('stop').description('Stop the xclaw gateway').action(async () => {
+  const { stopCommand } = await import('./commands/stop.js');
+  const result = await stopCommand();
+  console.log(result);
+});
+
+// doctor
+program.command('doctor').description('Health check and diagnostics').action(async () => {
+  const { runDoctorChecks, formatDoctorResults } = await import('./commands/doctor.js');
+  const results = await runDoctorChecks();
+  console.log(formatDoctorResults(results));
+});
+
+// config
+const configCmd = program.command('config').description('Manage xclaw configuration');
+configCmd.command('get <key>').action(async (key: string) => {
+  const { configGet } = await import('./commands/config.js');
+  console.log(await configGet(key));
+});
+configCmd.command('set <key> <value>').action(async (key: string, value: string) => {
+  const { configSet } = await import('./commands/config.js');
+  console.log(await configSet(key, value));
+});
+configCmd.command('list').action(async () => {
+  const { configList } = await import('./commands/config.js');
+  console.log(await configList());
+});
+
+// cron
+const cronCmd = program.command('cron').description('Manage cron jobs');
+cronCmd.command('list').action(async () => {
+  const { cronList } = await import('./commands/cron.js');
+  console.log(await cronList());
+});
+cronCmd.command('enable <id>').action(async (id: string) => {
+  const { cronEnable } = await import('./commands/cron.js');
+  console.log(await cronEnable(id));
+});
+cronCmd.command('disable <id>').action(async (id: string) => {
+  const { cronDisable } = await import('./commands/cron.js');
+  console.log(await cronDisable(id));
+});
+
+// send
+program.command('send <message>').description('Send a one-shot message to the gateway').action(async (message: string) => {
+  const { sendCommand } = await import('./commands/send.js');
+  const result = await sendCommand(message);
+  console.log(result);
+});
+
+// status
+program.command('status').description('Show gateway status').action(async () => {
+  const { statusCommand } = await import('./commands/status.js');
+  const result = await statusCommand();
+  console.log(result);
+});
+
+// sandbox
+program.command('sandbox').description('Show sandbox information').action(async () => {
+  const { sandboxInfo } = await import('./commands/sandboxCmd.js');
+  console.log(sandboxInfo());
+});
+
 program.parse();
