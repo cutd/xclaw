@@ -282,6 +282,19 @@ importers:
       typescript: 5.9.3
       vitest: 3.2.4
 
+  skills/web-search:
+    specifiers:
+      '@xclaw/core': workspace:*
+      '@xclaw/sdk': workspace:*
+      typescript: ^5.7.0
+      vitest: ^3.0.0
+    dependencies:
+      '@xclaw/core': link:../../packages/core
+      '@xclaw/sdk': link:../../packages/sdk
+    devDependencies:
+      typescript: 5.9.3
+      vitest: 3.2.4
+
 packages:
 
   /@azure/abort-controller/2.1.2:
