@@ -11,3 +11,5 @@ export {
 } from './base.js';
 
 export { type AnthropicConfig, AnthropicProvider } from './anthropic.js';
+
+export { type OpenAIConfig, OpenAIProvider } from './openai.js';
