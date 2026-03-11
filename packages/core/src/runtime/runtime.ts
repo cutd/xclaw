@@ -13,6 +13,7 @@ import { SandboxManager } from '../sandbox/manager.js';
 import { VmIsolateBackend } from '../sandbox/vmBackend.js';
 import { GatewayServer } from '../gateway/server.js';
 import { MessagePipeline } from '../gateway/pipeline.js';
+import { createStreamBridge } from '../gateway/streamBridge.js';
 import { ConfigLoader } from './configLoader.js';
 import type { XClawConfig } from '../types/config.js';
 import type { AgentTier } from '../agent/types.js';
@@ -123,6 +124,47 @@ export class XClawRuntime {
         eventBus: this.eventBus,
       });
       await this.gateway.start();
+
+      // Wire gateway messages to pipeline with stream bridge
+      this.eventBus.on('gateway.message', async (event: any) => {
+        const { connectionId, sessionId, message } = event;
+        if (message.type !== 'chat.message') return;
+        if (!this.pipeline || !this.gateway) return;
+
+        const onStream = createStreamBridge(connectionId, (connId, msg) => {
+          this.gateway!.sendTo(connId, msg);
+        });
+
+        try {
+          const result = await this.pipeline.process(
+            {
+              id: message.id,
+              source: {
+                channel: 'gateway',
+                userId: (message.payload.userId as string) ?? 'anonymous',
+                sessionId: sessionId ?? '',
+              },
+              content: { type: 'text', text: message.payload.text as string },
+              timestamp: message.timestamp,
+            },
+            onStream,
+          );
+
+          this.gateway.sendTo(connectionId, {
+            type: 'chat.response',
+            id: message.id,
+            payload: { text: result.content, model: result.model, usage: result.usage },
+            timestamp: Date.now(),
+          });
+        } catch {
+          this.gateway.sendTo(connectionId, {
+            type: 'error',
+            id: message.id,
+            payload: { error: 'Pipeline processing failed' },
+            timestamp: Date.now(),
+          });
+        }
+      });
     }
 
     // 7. Dynamic channel loading
