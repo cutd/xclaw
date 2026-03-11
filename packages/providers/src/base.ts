@@ -48,6 +48,16 @@ export interface ChatResponse {
   stopReason?: string;
 }
 
+
+// ── Streaming types ──────────────────────────────────────────────────
+
+export interface StreamChunk {
+  type: 'text_delta' | 'tool_start' | 'tool_delta' | 'tool_end' | 'done';
+  text?: string;
+  toolCall?: Partial<ToolCall>;
+  usage?: TokenUsage;
+}
+
 // ── Provider interface ──────────────────────────────────────────────
 
 export interface LLMProvider {
@@ -59,6 +69,9 @@ export interface LLMProvider {
 
   /** Send a chat request and return a response. */
   chat(request: ChatRequest): Promise<ChatResponse>;
+
+  /** Stream a chat response as incremental chunks. Optional — not all providers support streaming. */
+  chatStream?(request: ChatRequest): AsyncIterable<StreamChunk>;
 
   /** Validate that the configured API key is accepted by the remote service. */
   validateApiKey(): Promise<boolean>;

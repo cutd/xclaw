@@ -3,6 +3,7 @@ export {
   type ChatRequest,
   type ChatResponse,
   type LLMProvider,
+  type StreamChunk,
   type TokenUsage,
   type ToolCall,
   type ToolSchema,
