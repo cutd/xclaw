@@ -101,4 +101,79 @@ describe('StandardAgent', () => {
     const agent = new StandardAgent(provider, vi.fn());
     expect(agent.level).toBe('standard');
   });
+
+  it('should stream text incrementally when provider has chatStream', async () => {
+    async function* mockStream() {
+      yield { type: 'text_delta' as const, text: 'Streamed' };
+      yield { type: 'text_delta' as const, text: ' response' };
+      yield { type: 'done' as const, usage: { inputTokens: 12, outputTokens: 8 } };
+    }
+
+    const provider = {
+      ...mockProvider([{ content: 'fallback' }]),
+      chatStream: vi.fn().mockReturnValue(mockStream()),
+    };
+    const toolExecutor = vi.fn();
+    const agent = new StandardAgent(provider, toolExecutor);
+    const streamBlocks: any[] = [];
+    const onStream = vi.fn((block: any) => streamBlocks.push(block));
+
+    const ctx: AgentContext = {
+      sessionId: 's1', userId: 'u1', message: 'test',
+      tier: 'standard', model: 'mock-model', maxTokens: 4000,
+      conversationHistory: [], tools: [],
+    };
+
+    const result = await agent.run(ctx, onStream);
+
+    const textBlocks = streamBlocks.filter((b: any) => b.type === 'text');
+    expect(textBlocks).toHaveLength(2);
+    expect(textBlocks[0].content).toBe('Streamed');
+    expect(result.content).toBe('Streamed response');
+  });
+
+  it('should handle streaming with tool calls', async () => {
+    let callCount = 0;
+    function makeStreamWithTools() {
+      return (async function* () {
+        yield { type: 'tool_start' as const, toolCall: { name: 'shell', id: 'tc1' } };
+        yield { type: 'tool_delta' as const, text: '{"cmd":"ls"}' };
+        yield { type: 'tool_end' as const };
+        yield { type: 'done' as const, usage: { inputTokens: 15, outputTokens: 10 } };
+      })();
+    }
+    function makeStreamFinal() {
+      return (async function* () {
+        yield { type: 'text_delta' as const, text: 'Done!' };
+        yield { type: 'done' as const, usage: { inputTokens: 20, outputTokens: 5 } };
+      })();
+    }
+
+    const provider = {
+      ...mockProvider([{ content: 'fallback' }]),
+      chatStream: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) return makeStreamWithTools();
+        return makeStreamFinal();
+      }),
+    };
+    const toolExecutor = vi.fn().mockResolvedValue('file1.txt');
+    const agent = new StandardAgent(provider, toolExecutor);
+    const streamBlocks: any[] = [];
+    const onStream = vi.fn((block: any) => streamBlocks.push(block));
+
+    const ctx: AgentContext = {
+      sessionId: 's1', userId: 'u1', message: 'list files',
+      tier: 'standard', model: 'mock-model', maxTokens: 4000,
+      conversationHistory: [],
+      tools: [{ name: 'shell', description: 'run', inputSchema: {} }],
+    };
+
+    const result = await agent.run(ctx, onStream);
+
+    expect(toolExecutor).toHaveBeenCalledWith('shell', { cmd: 'ls' });
+    expect(result.content).toBe('Done!');
+    expect(streamBlocks.some((b: any) => b.type === 'tool_start')).toBe(true);
+    expect(streamBlocks.some((b: any) => b.type === 'tool_result')).toBe(true);
+  });
 });

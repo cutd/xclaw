@@ -80,4 +80,53 @@ describe('LightweightAgent', () => {
     const agent = new LightweightAgent(provider);
     expect(agent.level).toBe('lightweight');
   });
+
+  it('should stream text incrementally when provider has chatStream', async () => {
+    async function* mockStream() {
+      yield { type: 'text_delta' as const, text: 'Hello' };
+      yield { type: 'text_delta' as const, text: ' world' };
+      yield { type: 'done' as const, usage: { inputTokens: 10, outputTokens: 5 } };
+    }
+
+    const provider = {
+      ...mockProvider({ content: 'fallback' }),
+      chatStream: vi.fn().mockReturnValue(mockStream()),
+    };
+    const agent = new LightweightAgent(provider);
+    const streamBlocks: any[] = [];
+    const onStream = vi.fn((block: any) => streamBlocks.push(block));
+
+    const ctx: AgentContext = {
+      sessionId: 'sess-1', userId: 'user-1', message: 'hi',
+      tier: 'trivial', model: 'mock-model', maxTokens: 200,
+      conversationHistory: [], tools: [],
+    };
+
+    const result = await agent.run(ctx, onStream);
+
+    const textBlocks = streamBlocks.filter((b: any) => b.type === 'text');
+    expect(textBlocks).toHaveLength(2);
+    expect(textBlocks[0].content).toBe('Hello');
+    expect(textBlocks[1].content).toBe(' world');
+    expect(streamBlocks.some((b: any) => b.type === 'done')).toBe(true);
+    expect(result.content).toBe('Hello world');
+    expect(result.usage.inputTokens).toBe(10);
+  });
+
+  it('should fall back to chat() when chatStream is not available', async () => {
+    const provider = mockProvider({ content: 'No stream' });
+    const agent = new LightweightAgent(provider);
+    const onStream = vi.fn();
+
+    const ctx: AgentContext = {
+      sessionId: 'sess-1', userId: 'user-1', message: 'hi',
+      tier: 'trivial', model: 'mock-model', maxTokens: 200,
+      conversationHistory: [], tools: [],
+    };
+
+    const result = await agent.run(ctx, onStream);
+    expect(result.content).toBe('No stream');
+    expect(onStream).toHaveBeenCalledWith(expect.objectContaining({ type: 'text', content: 'No stream' }));
+    expect(onStream).toHaveBeenCalledWith(expect.objectContaining({ type: 'done' }));
+  });
 });
