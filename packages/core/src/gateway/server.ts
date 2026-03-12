@@ -2,6 +2,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { randomUUID } from 'node:crypto';
 import { EventBus } from '../events/eventBus.js';
 import { SessionManager } from './sessionManager.js';
+import { PresenceTracker } from './presence.js';
 import type { GatewayConfig } from '../types/config.js';
 import type { GatewayMessage, ClientConnection, ClientType } from './types.js';
 
@@ -37,6 +38,7 @@ export class GatewayServer {
   private readonly eventBus: EventBus;
   private readonly statusProvider?: () => string[];
   readonly sessions: SessionManager;
+  readonly presence = new PresenceTracker();
   private heartbeatTimer?: ReturnType<typeof setInterval>;
   private startedAt = Date.now();
 
@@ -93,6 +95,14 @@ export class GatewayServer {
       if (connection.sessionId === sessionId && ws.readyState === ws.OPEN) {
         ws.send(JSON.stringify(message));
       }
+    }
+  }
+
+  broadcastToChannel(channel: string, message: GatewayMessage, excludeConnectionId?: string): void {
+    const members = this.presence.listByChannel(channel);
+    for (const member of members) {
+      if (member.connectionId === excludeConnectionId) continue;
+      this.sendTo(member.connectionId, message);
     }
   }
 
@@ -157,6 +167,13 @@ export class GatewayServer {
         const channel = (msg.payload.channel as string) ?? client.connection.clientType;
         const session = this.sessions.create(userId, channel);
         client.connection.sessionId = session.id;
+        this.presence.join(connectionId, userId, channel);
+        this.broadcastToChannel(channel, {
+          type: 'presence.join',
+          id: randomUUID(),
+          payload: { userId, channel, connectionId },
+          timestamp: Date.now(),
+        }, connectionId);
         this.sendTo(connectionId, {
           type: 'session.create',
           id: randomUUID(),
@@ -183,6 +200,18 @@ export class GatewayServer {
         this.sendTo(connectionId, status);
         return;
       }
+
+      case 'presence.list': {
+        const channel = (msg.payload.channel as string) ?? '';
+        const entries = this.presence.listByChannel(channel);
+        this.sendTo(connectionId, {
+          type: 'presence.list',
+          id: randomUUID(),
+          payload: { channel, entries },
+          timestamp: Date.now(),
+        });
+        return;
+      }
     }
 
     if (client.connection.sessionId) {
@@ -197,6 +226,15 @@ export class GatewayServer {
   }
 
   private handleDisconnect(connectionId: string): void {
+    const entry = this.presence.leave(connectionId);
+    if (entry) {
+      this.broadcastToChannel(entry.channel, {
+        type: 'presence.leave',
+        id: randomUUID(),
+        payload: { userId: entry.userId, channel: entry.channel, connectionId },
+        timestamp: Date.now(),
+      });
+    }
     this.clients.delete(connectionId);
     this.eventBus.emit('gateway.client_disconnected', { connectionId });
   }
