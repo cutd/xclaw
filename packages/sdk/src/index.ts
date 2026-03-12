@@ -1,4 +1,5 @@
 export { BaseChannelPlugin } from './channel.js';
 export type { MessageHandler, ActivationMode, MessageContext, ReconnectOptions, BaseChannelConfig } from './channel.js';
 export { BaseSkillPlugin } from './skill.js';
+export { BaseExtensionPlugin } from './extension.js';
 export * from './types.js';
