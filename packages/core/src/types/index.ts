@@ -26,6 +26,7 @@ export type {
 
 export type {
   PluginManifest,
+  ExtensionProvides,
   ChannelPlugin,
   SkillPlugin,
   ToolDefinition,

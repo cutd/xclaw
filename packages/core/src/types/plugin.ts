@@ -1,10 +1,19 @@
 import type { UnifiedMessage, OutgoingMessage } from './message.js';
 
+export interface ExtensionProvides {
+  channels?: string[];
+  memory?: string;
+  voice?: boolean;
+  tools?: string[];
+  device?: string[];
+}
+
 export interface PluginManifest {
   name: string;
   version: string;
   description: string;
-  type: 'channel' | 'skill' | 'provider';
+  type: 'channel' | 'skill' | 'provider' | 'extension';
+  provides?: ExtensionProvides;
   compatibility?: {
     xclaw?: string;
     openclaw?: string;
