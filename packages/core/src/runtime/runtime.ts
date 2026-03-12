@@ -15,6 +15,7 @@ import { GatewayServer } from '../gateway/server.js';
 import { MessagePipeline } from '../gateway/pipeline.js';
 import { createStreamBridge } from '../gateway/streamBridge.js';
 import { ConfigLoader } from './configLoader.js';
+import { ConfigWatcher } from '../config/watcher.js';
 import type { XClawConfig } from '../types/config.js';
 import type { AgentTier } from '../agent/types.js';
 import { CronScheduler } from '../cron/scheduler.js';
@@ -40,6 +41,8 @@ export interface RuntimeStartOptions {
 export class XClawRuntime {
   private state: RuntimeState = 'stopped';
   private config?: XClawConfig;
+  private configPath?: string;
+  private configWatcher?: ConfigWatcher;
   private startedAt = 0;
 
   private eventBus?: EventBus;
@@ -54,6 +57,7 @@ export class XClawRuntime {
   async loadConfig(path: string): Promise<void> {
     const loader = new ConfigLoader();
     this.config = await loader.load(path);
+    this.configPath = path;
     this.state = 'configured';
   }
 
@@ -234,9 +238,33 @@ export class XClawRuntime {
 
     this.startedAt = Date.now();
     this.state = 'running';
+
+    // 10. Config file watcher (hot-reload)
+    if (this.configPath) {
+      this.configWatcher = new ConfigWatcher(this.configPath, (newConfig) => {
+        this.config = newConfig;
+        if (this.gateway) {
+          for (const client of this.gateway.getConnectedClients()) {
+            this.gateway.sendTo(client.id, {
+              type: 'config.update',
+              id: `config-${Date.now()}`,
+              payload: { updated: true },
+              timestamp: Date.now(),
+            });
+          }
+        }
+      });
+      this.configWatcher.start();
+    }
   }
 
   async stop(): Promise<void> {
+    // Stop config watcher
+    if (this.configWatcher) {
+      this.configWatcher.stop();
+      this.configWatcher = undefined;
+    }
+
     // Stop cron scheduler
     if (this.cronScheduler) {
       this.cronScheduler.stop();
