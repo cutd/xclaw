@@ -37,4 +37,19 @@ describe('PluginRegistry', () => {
     registry.register(manifest, { execute: () => {} });
     expect(() => registry.register(manifest, { execute: () => {} })).toThrow();
   });
+
+  it('lists extensions by type', () => {
+    const registry = new PluginRegistry();
+    registry.register(
+      { name: 'ext1', version: '1.0.0', description: 'test', type: 'extension' },
+      {},
+    );
+    registry.register(
+      { name: 'skill1', version: '1.0.0', description: 'test', type: 'skill' },
+      {},
+    );
+    expect(registry.listByType('extension')).toHaveLength(1);
+    expect(registry.listByType('extension')[0].manifest.name).toBe('ext1');
+  });
+
 });

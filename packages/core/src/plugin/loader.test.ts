@@ -21,4 +21,9 @@ describe('detectPluginFormat', () => {
     const pkg = { name: 'test' };
     expect(detectPluginFormat(pkg)).toBe('unknown');
   });
+
+  it('detects xclaw-extension keyword as xclaw format', () => {
+    expect(detectPluginFormat({ keywords: ['xclaw-extension'] })).toBe('xclaw');
+  });
+
 });

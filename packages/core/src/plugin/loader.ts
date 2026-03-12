@@ -3,7 +3,7 @@ export type PluginFormat = 'xclaw' | 'openclaw' | 'mcp' | 'claudeCode' | 'unknow
 export function detectPluginFormat(pkg: Record<string, unknown>): PluginFormat {
   const keywords = (pkg.keywords as string[]) ?? [];
 
-  if (keywords.includes('xclaw-plugin') || keywords.includes('xclaw-skill') || keywords.includes('xclaw-channel')) {
+  if (keywords.includes('xclaw-plugin') || keywords.includes('xclaw-skill') || keywords.includes('xclaw-channel') || keywords.includes('xclaw-extension')) {
     return 'xclaw';
   }
   if (keywords.includes('openclaw-extension') || keywords.includes('openclaw-skill')) {
