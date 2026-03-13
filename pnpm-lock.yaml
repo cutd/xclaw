@@ -184,6 +184,21 @@ importers:
       typescript: 5.9.3
       vitest: 3.2.4
 
+  extensions/line:
+    specifiers:
+      '@xclaw/core': workspace:*
+      '@xclaw/sdk': workspace:*
+      tsup: ^8.4.0
+      typescript: ^5.7.0
+      vitest: ^3.0.0
+    dependencies:
+      '@xclaw/core': link:../../packages/core
+      '@xclaw/sdk': link:../../packages/sdk
+    devDependencies:
+      tsup: 8.5.1_typescript@5.9.3
+      typescript: 5.9.3
+      vitest: 3.2.4
+
   extensions/matrix:
     specifiers:
       '@xclaw/core': workspace:*

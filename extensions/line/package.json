@@ -1,0 +1,23 @@
+{
+  "name": "@xclaw/ext-line",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "keywords": ["xclaw-extension"],
+  "exports": {
+    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@xclaw/sdk": "workspace:*",
+    "@xclaw/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
