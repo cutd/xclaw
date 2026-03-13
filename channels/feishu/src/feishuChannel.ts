@@ -59,6 +59,26 @@ export class FeishuChannel extends BaseChannelPlugin {
     }
   }
 
+  /**
+   * Handle an incoming Feishu webhook event.
+   * Parses `im.message.receive_v1` events into a UnifiedMessage
+   * and dispatches them through the registered message handler.
+   */
+  async handleWebhookEvent(payload: Record<string, unknown>): Promise<void> {
+    const header = payload.header as Record<string, unknown> | undefined;
+    if (!header || header.event_type !== 'im.message.receive_v1') {
+      return;
+    }
+
+    const event = payload.event as Record<string, unknown> | undefined;
+    if (!event) {
+      return;
+    }
+
+    const unified = this.normalizeMessage(event);
+    await this.dispatchMessage(unified);
+  }
+
   normalizeMessage(raw: Record<string, unknown>): UnifiedMessage {
     const sender = raw.sender as Record<string, any> | undefined;
     const message = raw.message as Record<string, any> | undefined;
