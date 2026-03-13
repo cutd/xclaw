@@ -25,6 +25,7 @@ describe('XClawRuntime', () => {
 
       expect(status.state).toBe('stopped');
       expect(status.channels).toEqual([]);
+      expect(status.extensions).toEqual([]);
       expect(status.uptime).toBe(0);
     });
   });

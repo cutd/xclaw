@@ -31,6 +31,7 @@ export type RuntimeState = 'stopped' | 'configured' | 'running';
 export interface RuntimeStatus {
   state: RuntimeState;
   channels: string[];
+  extensions: string[];
   uptime: number;
 }
 
@@ -49,6 +50,7 @@ export class XClawRuntime {
   private gateway?: GatewayServer;
   private pipeline?: MessagePipeline;
   private loadedChannels = new Map<string, any>();
+  private loadedExtensions = new Map<string, any>();
   private cronScheduler?: CronScheduler;
   private cronStore?: CronJobStore;
   private webhookRouter?: WebhookRouter;
@@ -181,6 +183,18 @@ export class XClawRuntime {
       }
     }
 
+    // 7b. Extension loading
+    if (this.config.extensions) {
+      for (const extConfig of this.config.extensions) {
+        if (!extConfig.enabled) continue;
+        try {
+          await this.loadExtension(extConfig.name, extConfig.config);
+        } catch {
+          // Extension load failed -- continue with others
+        }
+      }
+    }
+
     // 8. Cron scheduler
     const cronJobs: CronJob[] = [];
     if (this.config.cron) {
@@ -277,6 +291,12 @@ export class XClawRuntime {
       this.httpServer = undefined;
     }
 
+    // Unload extensions
+    for (const [, ext] of this.loadedExtensions) {
+      try { await ext.onUnload(); } catch { /* ignore */ }
+    }
+    this.loadedExtensions.clear();
+
     // Unload channels
     for (const [, channel] of this.loadedChannels) {
       try { await channel.onUnload(); } catch { /* ignore */ }
@@ -310,6 +330,24 @@ export class XClawRuntime {
     this.loadedChannels.set(name, channel);
   }
 
+  async loadExtension(name: string, config: Record<string, unknown>): Promise<void> {
+    const mod = await import(`@xclaw/ext-${name}`);
+    const ExtClass = Object.values(mod).find(
+      (val) => typeof val === 'function' && (val as any).prototype?.manifest !== undefined,
+    ) as new (cfg: any) => any;
+
+    if (!ExtClass) throw new Error(`No extension class found in @xclaw/ext-${name}`);
+
+    const ext = new ExtClass(config);
+    await ext.onLoad();
+    this.loadedExtensions.set(name, ext);
+
+    // If extension provides channels, wire them to the pipeline
+    if (ext.manifest?.provides?.channels && ext.send && this.pipeline) {
+      this.wireChannel(name, ext);
+    }
+  }
+
   wireChannel(name: string, channel: any): void {
     if (!this.pipeline) throw new Error('Pipeline not initialized');
     const pipeline = this.pipeline;
@@ -333,6 +371,7 @@ export class XClawRuntime {
     return {
       state: this.state,
       channels: [...this.loadedChannels.keys()],
+      extensions: [...this.loadedExtensions.keys()],
       uptime: this.startedAt > 0 ? Date.now() - this.startedAt : 0,
     };
   }

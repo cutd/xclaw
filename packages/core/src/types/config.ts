@@ -52,6 +52,13 @@ export interface WebhooksConfig {
   [name: string]: WebhookConfigEntry;
 }
 
+export interface ExtensionConfig {
+  name: string;
+  type: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+}
+
 export interface XClawConfig {
   version: string;
   providers: ProviderConfig[];
@@ -65,6 +72,7 @@ export interface XClawConfig {
   memory: MemoryConfig;
   cron?: CronConfig;
   webhooks?: WebhooksConfig;
+  extensions?: ExtensionConfig[];
 }
 
 export interface ProviderConfig {
